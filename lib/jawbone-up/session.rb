@@ -61,8 +61,8 @@ module JawboneUP
     def get_sleep_summary(limit=nil, start_time=nil, end_time=nil)
       require_token
       params = {}
-      params[:limit] = limit if !limit.nil?
-      params[:start_time] = start_time if !start_time.nil?
+      params[:limit] = limit unless limit.nil?
+      params[:start_time] = start_time unless start_time.nil?
       result = self.get "/nudge/api/users/"+xid+"/sleeps", params
       return_response result['data']
     end
