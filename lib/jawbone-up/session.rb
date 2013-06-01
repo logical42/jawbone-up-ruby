@@ -90,6 +90,14 @@ module JawboneUP
       query = Rack::Utils.parse_query query if query.is_a?(String)
       headers = default_headers.merge! headers
 
+      if @config.logger
+        @config.logger.print "## PATH: #{path}\n\n"
+        @config.logger.print query.map{|k,v| "#{CGI.escape(k.to_s)}=#{CGI.escape(v.to_s)}"}.join("&")
+        @config.logger.print "\n\n"
+        @config.logger.print headers.map{|k,v| "-H \"#{k}: #{v}\""}.join(" ")
+        @config.logger.print "\n\n"
+      end
+
       raw = @connection.send(meth) do |req|
         req.url "/#{path.gsub(/^\//, '')}"
         req.headers = headers
@@ -121,10 +129,11 @@ module JawboneUP
 
     def default_headers
       headers = {
-        'User-Agent' => "Nudge/1.3.1 CFNetwork/548.0.4 Darwin/11.0.0", 
+        'User-Agent' => "Nudge/2.5.6 CFNetwork/609.1.4 Darwin/13.0.0", 
         # 'Content-Type' => 'application/json', 
         'Accept' => 'application/json',
-        'x-nudge-platform' => 'iPhone 4; 5.0.1'
+        'x-nudge-platform' => 'iPhone 5,2; 6.1.3',
+        'Accept-Encoding' => 'plain'
       }
       headers['x-nudge-token'] = token if token
       headers

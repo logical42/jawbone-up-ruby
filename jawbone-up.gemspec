@@ -1,7 +1,7 @@
 Gem::Specification.new do |s|
   s.name        = 'jawbone-up'
-  s.version     = '0.0.1'
-  s.date        = '2011-12-20'
+  s.version     = '0.0.2'
+  s.date        = '2013-06-01'
   s.summary     = "Client for the Jawbone UP service"
   s.description = "A client for the Jawbone UP service, as discovered by http://eric-blue.com/projects/up-api/"
   s.authors     = ["Aaron Parecki"]
