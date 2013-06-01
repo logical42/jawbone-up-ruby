@@ -9,7 +9,7 @@ require 'geoloqi'
 require './lib/jawbone-up.rb'
 
 DataMapper.finalize
-DataMapper.setup :default, "mysql://root@127.0.0.1/aaron"
+DataMapper.setup :default, "mysql://root@127.0.0.1/aaronpk"
 
 class User
   include DataMapper::Resource
@@ -30,9 +30,9 @@ class Sleep
   property :date, DateTime
   property :title, String, :length => 100
   property :time_started, Integer
-  property :local_time_started, Time
+  property :local_time_started, String, :length => 8
   property :time_finished, Integer
-  property :local_time_finished, Time
+  property :local_time_finished, String, :length => 8
   property :timezone, String, :length => 50
   property :quality, Integer
   property :latitude, Float
@@ -42,10 +42,6 @@ class Sleep
 
   property :created_at, DateTime
   property :updated_at, DateTime
-
-  def href
-    "http://#{self.domain}/"
-  end
 end
 
 user = User.first :id => 1
@@ -75,20 +71,15 @@ up = JawboneUP::Session.new :auth => {
                               :token => user.jawbone_token
                             },
                             :config => {
-                              # :logger => STDOUT,
+                              :logger => STDOUT,
                               :use_hashie_mash => true
                             }
 puts
 
 # If a 'sleep.json' file exists, it will pick up downloading where it previously left off
-data_file = "./sleep.json"
-if(FileTest.exist? data_file)
-  sleep_history = JSON.parse(File.open(data_file, 'r') { |f| f.read })
-  last_date = sleep_history[-1]["time_created"]
-else
-  sleep_history = []
-  last_date = DateTime.parse("2011-11-15 23:48:47 -0800").strftime('%s')
-end
+# File not used anymore, uses database lookup instead
+last_date = DateTime.parse("2011-11-15 23:48:47 -0800").strftime('%s')
+last_date = Sleep.last.date.strftime('%s')
 
 puts "Downloading data since #{Time.at last_date.to_i}"
 
@@ -128,7 +119,8 @@ while (sleeps = up.get_sleep_summary 60, last_date).items.count > 0 do
 
     if offset
       puts "Found timezone offset: #{offset}"
-      adjusted_date_started = (Time.at(item.time_created).to_datetime).new_offset(offset)
+      adjusted_time_started = (Time.at(item.time_created).to_datetime).new_offset(offset).strftime('%H:%M:%S')
+      adjusted_time_finished = (Time.at(item.time_completed).to_datetime).new_offset(offset).strftime('%H:%M:%S')
       adjusted_date_finished = (Time.at(item.time_completed).to_datetime).new_offset(offset)
     else
       adjusted_date_started = nil
@@ -138,9 +130,9 @@ while (sleeps = up.get_sleep_summary 60, last_date).items.count > 0 do
     Sleep.create({ :user => user, 
       :title => item.title,
       :date => adjusted_date_finished,
-      :local_time_started => adjusted_date_started,
+      :local_time_started => adjusted_time_started,
       :time_started => Time.at(item.time_created),
-      :local_time_finished => adjusted_date_finished,
+      :local_time_finished => adjusted_time_finished,
       :time_finished => Time.at(item.time_completed),
       :timezone => item.details.tz,
       :quality => item.details.quality,
