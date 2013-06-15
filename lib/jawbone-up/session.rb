@@ -1,3 +1,5 @@
+require 'rest-client'
+
 module JawboneUP
   class Session
     attr_reader :auth
@@ -9,10 +11,6 @@ module JawboneUP
       self.auth = opts[:auth] || {}
       self.auth[:token] = opts[:token] if opts[:token]
       self.auth[:xid] = opts[:xid] if opts[:xid]
-
-      @connection = Faraday.new(:url => JawboneUP.api_url) do |builder|
-        builder.adapter :net_http
-      end
     end
 
     def auth=(hash)
@@ -87,7 +85,7 @@ module JawboneUP
     end
     
     def execute(meth, path, query=nil, headers={})
-      query = Rack::Utils.parse_query query if query.is_a?(String)
+      query = CGI::parse(query) if query.is_a?(String)
       headers = default_headers.merge! headers
 
       if @config.logger
@@ -98,33 +96,30 @@ module JawboneUP
         @config.logger.print "\n\n"
       end
 
-      raw = @connection.send(meth) do |req|
-        req.url "/#{path.gsub(/^\//, '')}"
-        req.headers = headers
-        if query
-          meth == :get ? req.params = query : req.body = URI.encode_www_form(query)
-        end
+      if meth == :get
+        response = RestClient.get "#{JawboneUP.api_url}/#{path.gsub(/^\//, '')}", headers.merge({:params => query})
+      else
+        response = RestClient.post "#{JawboneUP.api_url}/#{path.gsub(/^\//, '')}", query, headers
       end
 
-      if raw.status != 200
+      if response.code != 200
         begin
-          error = JSON.parse raw.body
+          error = JSON.parse response.to_str
           raise JSON::ParserError.new if error['meta'].nil? || error['meta']['error_type'].nil?
-          raise ApiError.new(raw.status, error['meta']['error_type'], error['meta']['error_detail'])
+          raise ApiError.new(response.code, error['meta']['error_type'], error['meta']['error_detail'])
         rescue JSON::ParserError => e
-          raise ApiError.new(raw.status, "error", "Unknown API error") if raw.status != 200
+          raise ApiError.new(response.code, "error", "Unknown API error") if response.code != 200
         end
       end
 
       if @config.logger
         @config.logger.print "### JawboneUp::Session - #{meth.to_s.upcase} #{path}"
-        @config.logger.print "?#{Rack::Utils.build_query query}" unless query.nil?
+        @config.logger.print query.map{|k,v| "#{CGI.escape(k.to_s)}=#{CGI.escape(v.to_s)}"}.join("&")
         @config.logger.print "\n### Request Headers: #{headers.inspect}"
-        @config.logger.print "### Status: #{raw.status}\n### Headers: #{raw.headers.inspect}\n###"
-        # @config.logger.puts "Body: #{raw.body}"
+        @config.logger.print "### Status: #{response.code}\n### Headers: #{response.headers.inspect}\n###"
       end
       
-      Response.new raw.status, raw.headers, raw.body
+      Response.new response.code, response.headers, response.to_str
     end  
 
     def default_headers

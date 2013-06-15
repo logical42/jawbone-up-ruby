@@ -1,10 +1,14 @@
-libdir = File.dirname(__FILE__)
 require 'json'
 require 'faraday'
-require './lib/jawbone-up/error.rb'
-require './lib/jawbone-up/config.rb'
-require './lib/jawbone-up/response.rb'
-require './lib/jawbone-up/session.rb'
+require 'jawbone-up/error.rb'
+require 'jawbone-up/config.rb'
+require 'jawbone-up/response.rb'
+require 'jawbone-up/session.rb'
+# libdir = File.dirname(__FILE__)
+# require "#{libdir}/jawbone-up/error.rb"
+# require "#{libdir}/jawbone-up/config.rb"
+# require "#{libdir}/jawbone-up/response.rb"
+# require "#{libdir}/jawbone-up/session.rb"
 
 module JawboneUP
   @@adapter = :net_http
