@@ -65,6 +65,19 @@ module JawboneUP
       return_response result['data']
     end
 
+    # Return the the metadata for the last 7 days' sleep activity (note: not _actual_ sleep details)
+    def get_sleep_details
+      result = self.get "/nudge/api/users/@me/sleeps/"
+      return_response result['data']
+    end
+
+    # Return an array of arrays; each element includes the epoch and sleep state at that time
+    # sleep_xid is required and can be obtained via the data structure returned from #get_sleep_details
+    def get_sleep_snapshot( sleep_xid )
+      result = self.get "/nudge/api/sleeps/#{sleep_xid}/snapshot"
+      return_response result['data']
+    end
+
     # Return either a Hashie::Mash object or the raw hash depending on config variable
     def return_response(hash)
       @config.use_hashie_mash ? Hashie::Mash.new(hash) : hash
